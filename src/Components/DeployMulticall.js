@@ -3,8 +3,10 @@ import { Grid } from 'react-loader-spinner'
 
 import {
   Button, Heading,
-  VStack, Text, Box, Flex, Spacer
+  VStack, Text, Box, Flex, Spacer, Link
 } from "@chakra-ui/react";
+import { ExternalLinkIcon } from '@chakra-ui/icons'
+
 import { ethers, ContractFactory } from "ethers";
 import { useAccount, useNetwork } from 'wagmi';
 
@@ -36,25 +38,23 @@ const DeployMulticall = () => {
     useEffect(() => {
         const items = JSON.parse(localStorage.getItem('multicall'));
         if (!items) return
-        const multicall = items.find(item => item.address === address) 
+        const multicall = items.find(item => item.address === address && item.chain === chain.id) 
         if (multicall) {setMulticallAddress(multicall.multicall)} else setMulticallAddress(null)
         
         if (items) {
         setItems(items);
         }
-    }, [address]);
+    }, [address, chain.id]);
 
 const deployMulticall = async () => { 
     if (!isConnected) return
     setIsLoading(true)
-    console.log(OevSearcherMulticallV1)
     const factory = new ContractFactory(OevSearcherMulticallV1.abi, OevSearcherMulticallV1.bytecode, provider.getSigner())
 
     factory.connect(provider.getSigner()).deploy().then((contract) => {
       contract.deployTransaction.wait().then((receipt) => {
-        console.log(`Deployment successful! Contract Address: ${contract.address}`)
         setMulticallAddress(contract.address)
-        items.push( { address: address, multicall: contract.address})
+        items.push( { address: address, chain: chain.id, multicall: contract.address})
         setIsLoading(false)
         setIsSuccess(true)
     }).catch((err) => {
@@ -64,10 +64,6 @@ const deployMulticall = async () => {
     }).catch((err) => {
       console.log(err)
     })
-
-  
-
-
 }
     
   return (
@@ -87,7 +83,7 @@ const deployMulticall = async () => {
       </Flex>
       <Text fontSize={"sm"}>Deploy a multicall contract to update data feeds. Multicall contract address will be saved to your browser.</Text>
    
-      <Box width={"100%"} height={"130px"} bgColor={COLORS.main} borderRadius={"10"}>
+      <Box width={"100%"} height={"160px"} bgColor={COLORS.main} borderRadius={"10"}>
 
       <VStack spacing={3} direction="row" align="left" m="1rem">
         <Text fontWeight={"bold"} fontSize={"md"}>Multicall Contract</Text>
@@ -103,6 +99,9 @@ const deployMulticall = async () => {
           >Copy</Button>
         </Flex>
         </Box>
+        <Link visibility={!multicallAddress ? 'hidden': 'visible'} href={chain.blockExplorers.default.url + '/address/' + multicallAddress} isExternal>
+  Show in explorer <ExternalLinkIcon mx='2px' />
+</Link>
         </VStack>
         </Box> 
 
