@@ -12,13 +12,14 @@ import {
   } from '@chakra-ui/react'
   import { CloseIcon } from '@chakra-ui/icons'
 import { ethers } from "ethers";
+import { useNetwork } from "wagmi";
 
 import { TOKEN_ABI, TOKEN_CONTRACT_ADDRESS } from "../data/abi";
 
 import { COLORS } from '../data/colors';
 
-const provider = ((window.ethereum != null) ? new ethers.providers.Web3Provider(window.ethereum) : ethers.providers.getDefaultProvider());
-const contract = new ethers.Contract(TOKEN_CONTRACT_ADDRESS, TOKEN_ABI, provider);
+let provider = ((window.ethereum != null) ? new ethers.providers.Web3Provider(window.ethereum) : ethers.providers.getDefaultProvider());
+let contract = new ethers.Contract(TOKEN_CONTRACT_ADDRESS, TOKEN_ABI, provider);
 
 const Hero = ({stateChanger}) => {
   const [ethAmount, setEthAmount] = useState("");
@@ -30,6 +31,8 @@ const Hero = ({stateChanger}) => {
   const [isSuccess, setIsSuccess] = useState(false);
   const [ethBalance, setEthBalance] = useState(0);
   const [tokenBalance, setTokenBalance] = useState(0);
+  const { chain } = useNetwork()
+  const [isSepolia, setIsSepolia] = useState(chain == null ? 0 : chain.id === 11155111)
 
   const [items, setItems] = useState([]);
 
@@ -44,7 +47,6 @@ const Hero = ({stateChanger}) => {
     setEthBalance(balance_.toString());
 })
 
-
   const fetchTokenBalance = (async () => {
     const signer = provider.getSigner();
 
@@ -55,9 +57,16 @@ const Hero = ({stateChanger}) => {
     setTokenBalance(balance_.toString());
 })
 
-fetchETHBalance()
-fetchTokenBalance()
+if (isSepolia) {
+  fetchETHBalance()
+  fetchTokenBalance()
+}
 
+useEffect(() => {
+  provider = ((window.ethereum != null) ? new ethers.providers.Web3Provider(window.ethereum) : ethers.providers.getDefaultProvider());
+  contract = new ethers.Contract(TOKEN_CONTRACT_ADDRESS, TOKEN_ABI, provider);
+  setIsSepolia(chain == null ? 0 : chain.id === 11155111)
+}, [chain]);
 
   useEffect(() => {
     if (!ethAmount || isNaN(parseFloat(ethAmount))) return;
@@ -108,7 +117,6 @@ fetchTokenBalance()
       if (items) {
        setItems(items);
       }
-      console.log(items)
     }, []);
 
   const calculateAmountValue = () => {

@@ -8,8 +8,8 @@ import {
 import { ethers, ContractFactory } from "ethers";
 import { useAccount } from 'wagmi';
 
-import { OEV_SEARCHER_MULTICALL_V1_ABI, OEV_SEARCHER_MULTICALL_V1_BYTECODE } from "../data/abi";
 import { COLORS } from '../data/colors';
+import OevSearcherMulticallV1 from "../Contracts/OevSearcherMulticallV1.json";
 
 const provider = ((window.ethereum != null) ? new ethers.providers.Web3Provider(window.ethereum) : ethers.providers.getDefaultProvider());
 
@@ -41,20 +41,27 @@ const DeployMulticall = () => {
 const deployMulticall = async () => { 
     if (!isConnected) return
     setIsLoading(true)
-    const factory = new ContractFactory(OEV_SEARCHER_MULTICALL_V1_ABI, OEV_SEARCHER_MULTICALL_V1_BYTECODE, provider.getSigner());
-    const address = await provider.getSigner().getAddress()
-    const contract = await factory.deploy().catch((err) => {
-        setIsLoading(false)
-    })
+    console.log(OevSearcherMulticallV1)
+    const factory = new ContractFactory(OevSearcherMulticallV1.abi, OevSearcherMulticallV1.bytecode, provider.getSigner())
 
-    await contract.deployTransaction.wait().then((receipt) => {
+    factory.connect(provider.getSigner()).deploy().then((contract) => {
+      contract.deployTransaction.wait().then((receipt) => {
+        console.log(`Deployment successful! Contract Address: ${contract.address}`)
+        setMulticallAddress(contract.address)
         items.push( { address: address, multicall: contract.address})
         setIsLoading(false)
         setIsSuccess(true)
-        setMulticallAddress(contract.address)
     }).catch((err) => {
         setIsLoading(false)
     })
+
+    }).catch((err) => {
+      console.log(err)
+    })
+
+  
+
+
 }
     
   return (
@@ -101,7 +108,6 @@ const deployMulticall = async () => {
         size="md"
         minWidth={"200px"}
         isDisabled={isLoading}
-        visibility={multicallAddress ? "hidden" : "visible"}
         onClick={
             () => deployMulticall()
         }

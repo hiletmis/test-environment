@@ -7,41 +7,9 @@ import { getDefaultWallets, RainbowKitProvider, lightTheme } from '@rainbow-me/r
 import { configureChains, createClient, WagmiConfig } from 'wagmi';
 import { publicProvider } from 'wagmi/providers/public';
 import { ChakraProvider } from '@chakra-ui/react';
+import { arbitrumGoerli, avalancheFuji, bscTestnet, sepolia, fantomTestnet, gnosisChiado, moonbeam, optimismGoerli, polygonMumbai, polygonZkEvmTestnet, zkSyncTestnet, hardhat } from './data/chains';
 
-const sepolia2 = {
-  id: 11155111,
-  name: "Sepolia",
-  network: "sepolia",
-  nativeCurrency: {
-      name: "Sepolia Ether",
-      symbol: "SEP",
-      decimals: 18,
- },
-  rpcUrls: {
-      default: {
-          http:  ["https://rpc.notadegen.com/eth/sepolia"],
-     }
- },
-  blockExplorers: {
-      etherscan: {
-          name: "Sepolia Scan",
-          url: "https://sepolia.etherscan.io/",
-     },
-      default: {
-          name: "Sepolia Scan",
-          url: "https://sepolia.etherscan.io/",
-     },
- },
-  contracts: {
-      multicall3: {
-          address: "0xca11bde05977b3631167028862be2a173976ca11",
-          blockCreated: 6507670,
-     },
- },
-  testnet: true,
-};
-
-const { chains, provider } = configureChains([sepolia2], [publicProvider()]);
+const { chains, provider } = configureChains([arbitrumGoerli, avalancheFuji, bscTestnet, sepolia, fantomTestnet, gnosisChiado, moonbeam, optimismGoerli, polygonMumbai, polygonZkEvmTestnet, zkSyncTestnet, hardhat], [publicProvider()]);
 
 const { connectors } = getDefaultWallets({
   appName: 'My RainbowKit App',
