@@ -32,11 +32,15 @@ const Hero = ({stateChanger}) => {
   const [ethBalance, setEthBalance] = useState(0);
   const [tokenBalance, setTokenBalance] = useState(0);
   const { chain } = useNetwork()
-  const [isSepolia, setIsSepolia] = useState(chain == null ? 0 : chain.id === 11155111)
-
+  const [isSepolia, setIsSepolia] = useState(chain == null ? 1 : chain.id === 11155111)
   const [items, setItems] = useState([]);
-
   const signer = provider.getSigner();
+
+  useEffect(() => {
+    provider = new ethers.providers.Web3Provider(window.ethereum);
+    contract = new ethers.Contract(TOKEN_CONTRACT_ADDRESS, TOKEN_ABI, provider);
+
+  }, [chain]);
 
   const fetchETHBalance = (async () => {
     const signer = provider.getSigner();

@@ -3,6 +3,7 @@ import { COLORS } from '../data/colors';
 import Faucet from './Faucet';
 import Popup from 'reactjs-popup';
 import { Grid } from 'react-loader-spinner'
+import { useNetwork } from 'wagmi';
 
 import { Button, Heading, VStack, Box, Text } from "@chakra-ui/react";
 import {
@@ -15,8 +16,8 @@ import {
 import { ethers } from "ethers";
 import { PREPAYMENT_DEPOSIT_ABI, PREPAYMENT_DEPOSIT_CONTRACT_ADDRESS, TOKEN_ABI, TOKEN_CONTRACT_ADDRESS } from "../data/abi";
  
-const provider = ((window.ethereum != null) ? new ethers.providers.Web3Provider(window.ethereum) : ethers.providers.getDefaultProvider());
-const contract = new ethers.Contract(PREPAYMENT_DEPOSIT_CONTRACT_ADDRESS, PREPAYMENT_DEPOSIT_ABI, provider);
+let provider = ((window.ethereum != null) ? new ethers.providers.Web3Provider(window.ethereum) : ethers.providers.getDefaultProvider());
+let contract = new ethers.Contract(PREPAYMENT_DEPOSIT_CONTRACT_ADDRESS, PREPAYMENT_DEPOSIT_ABI, provider);
  
 const Deposit = () => {
 
@@ -26,6 +27,13 @@ const Deposit = () => {
   const [tokenBalance, setTokenBalance] = useState(0); 
   const [collateral, setCollateral] = useState('');
   const [refreshBalance, setRefreshBalance] = useState(false);
+  const { chain } = useNetwork()
+
+  useEffect(() => {
+    provider = new ethers.providers.Web3Provider(window.ethereum);
+    contract = new ethers.Contract(PREPAYMENT_DEPOSIT_CONTRACT_ADDRESS, PREPAYMENT_DEPOSIT_ABI, provider);
+    setRefreshBalance(true)
+  }, [chain]);
 
   const fetchTokenBalance = (async () => {
     const signer = provider.getSigner();
@@ -47,9 +55,6 @@ const fetchCollateral = (async () => {
   const balance_ = balance / 1e6
   setCollateral(balance_.toString());
 })
-
-fetchCollateral()
-fetchTokenBalance()
 
   const depositTokens = async () => {
     const signer = provider.getSigner();

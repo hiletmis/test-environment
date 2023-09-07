@@ -25,18 +25,18 @@ const Hero = () => {
       <Image src={`/caution.svg`} width={"30px"} height={"30px"} />
     </Flex>
 
-  <Text fontSize={"sm"}>Prepayment depository contract is deployed on Ethereum Sepolia network. Please switch network to Ethereum Sepolia network to proceed adding collateral funds.</Text>
+  <Text fontSize={"sm"}>Prepayment depository contract is deployed on Ethereum Sepolia network. Please switch to Ethereum Sepolia network to proceed adding collateral funds.</Text>
 
   <Box width={"100%"} height="85px" bgColor={COLORS.main} borderRadius={"10"}>
     <VStack spacing={3} direction="row" align="left" m="1rem">
     <Flex>
     <Spacer />
 
-    <Image src={`/chainIcons/${chain == null ? 0 : 1}.svg`} width={"50px"} height={"50px"} />
+    <Image src={`/chainIcons/${chain == null ? 1 : chain.id}.svg`} width={"50px"} height={"50px"} />
     <Spacer />
     <Image src={`/switch.svg`} width={"50px"} height={"50px"} />
     <Spacer />
-    <Image src={`https://market.api3.org/images/asset-logos/ETH.webp`} width={"50px"} height={"50px"} />
+    <Image src={`/chainIcons/11155111.svg`} width={"50px"} height={"50px"} />
     <Spacer />
 
     </Flex>

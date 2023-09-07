@@ -6,12 +6,12 @@ import {
   VStack, Text, Box, Flex, Spacer
 } from "@chakra-ui/react";
 import { ethers, ContractFactory } from "ethers";
-import { useAccount } from 'wagmi';
+import { useAccount, useNetwork } from 'wagmi';
 
 import { COLORS } from '../data/colors';
 import OevSearcherMulticallV1 from "../Contracts/OevSearcherMulticallV1.json";
 
-const provider = ((window.ethereum != null) ? new ethers.providers.Web3Provider(window.ethereum) : ethers.providers.getDefaultProvider());
+let provider = ((window.ethereum != null) ? new ethers.providers.Web3Provider(window.ethereum) : ethers.providers.getDefaultProvider());
 
 const DeployMulticall = () => {
     const { address, isConnected } = useAccount()
@@ -20,6 +20,12 @@ const DeployMulticall = () => {
     const [isSuccess, setIsSuccess] = useState(false);
     const [multicallAddress, setMulticallAddress] = useState(null);
     const [items, setItems] = useState([]);
+
+    const { chain } = useNetwork()
+
+    useEffect(() => {
+      provider = new ethers.providers.Web3Provider(window.ethereum);
+    }, [chain]);
 
     useEffect(() => { 
         if (isSuccess) {
