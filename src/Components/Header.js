@@ -23,11 +23,6 @@ const Header = () => {
             Collateral
             </Button>
           </Link>
-          <Link to="/multicall" >
-            <Button borderRadius={"10px"} color="white" size="sm" height={"40px"}>
-            Deploy Multicall
-            </Button>
-          </Link>
           <ConnectButton 
             chainStatus={{
               largeScreen: "full",
