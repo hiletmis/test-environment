@@ -7,9 +7,9 @@ import { getDefaultWallets, RainbowKitProvider, lightTheme } from '@rainbow-me/r
 import { configureChains, createClient, WagmiConfig } from 'wagmi';
 import { publicProvider } from 'wagmi/providers/public';
 import { ChakraProvider } from '@chakra-ui/react';
-import { arbitrumGoerli, avalancheFuji, bscTestnet, sepolia, fantomTestnet, gnosisChiado, moonbeam, optimismGoerli, polygonMumbai, polygonZkEvmTestnet, zkSyncTestnet, hardhat } from './data/chains';
+import { arbitrumGoerli, avalancheFuji, bscTestnet, sepolia, fantomTestnet, gnosisChiado, moonbaseAlpha, optimismGoerli, polygonMumbai, polygonZkEvmTestnet, zkSyncTestnet } from './data/chains';
 
-const { chains, provider } = configureChains([arbitrumGoerli, avalancheFuji, bscTestnet, sepolia, fantomTestnet, gnosisChiado, moonbeam, optimismGoerli, polygonMumbai, polygonZkEvmTestnet, zkSyncTestnet, hardhat], [publicProvider()]);
+const { chains, provider } = configureChains([arbitrumGoerli, avalancheFuji, bscTestnet, sepolia, fantomTestnet, gnosisChiado, moonbaseAlpha, optimismGoerli, polygonMumbai, polygonZkEvmTestnet, zkSyncTestnet], [publicProvider()]);
 
 const { connectors } = getDefaultWallets({
   appName: 'My RainbowKit App',
