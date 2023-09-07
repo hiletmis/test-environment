@@ -2,7 +2,6 @@ import './App.css';
 import Header from './Components/Header';
 import DeployProxy from './Components/DeployProxy';
 import Prepayment from './Components/Prepayment';
-import DeployMulticall from './Components/Multicall';
 import { COLORS } from './data/colors';
 
 import {
@@ -48,7 +47,6 @@ function App() {
           <Routes>
             <Route path="/" element={<DeployProxy />} />
             <Route path="deposit" element={<Prepayment />} />
-            <Route path="multicall" element={<DeployMulticall />} />
           </Routes>
 
         </Flex>    
