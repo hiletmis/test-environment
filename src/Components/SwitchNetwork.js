@@ -1,4 +1,4 @@
-import React from "react";
+import React, {useEffect} from "react";
 import { VStack, Heading, Flex, Spacer, Text, Box, Image, Stack, Button} from '@chakra-ui/react';
 import { COLORS } from '../data/colors';
 import { useNetwork } from "wagmi";
@@ -6,6 +6,9 @@ import { useNetwork } from "wagmi";
 const Hero = () => {
 
     const { chain } = useNetwork()
+    
+    useEffect(() => {
+    }, [chain]);
 
     function switchNetwork() {
         if (window.ethereum === null) {

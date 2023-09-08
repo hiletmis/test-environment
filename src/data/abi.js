@@ -389,6 +389,7 @@ export const ABI_TDF = [
   },
 ];
 
+export const TOKEN_NAME = "SepoliaUsdc";
 export const TOKEN_CONTRACT_ADDRESS = "0x03A35484388562E2b4e3d5ce105dc4Db7F57ebC4";
 export const TOKEN_ABI = [
   { inputs: [], stateMutability: "nonpayable", type: "constructor" },

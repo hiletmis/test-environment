@@ -12,75 +12,59 @@ import {
   } from '@chakra-ui/react'
   import { CloseIcon } from '@chakra-ui/icons'
 import { ethers } from "ethers";
-import { useNetwork } from "wagmi";
+import { useBalance, useAccount, usePrepareContractWrite, useContractWrite, useWaitForTransaction } from 'wagmi';
 
 import { TOKEN_ABI, TOKEN_CONTRACT_ADDRESS } from "../data/abi";
 
 import { COLORS } from '../data/colors';
 
-let provider = ((window.ethereum != null) ? new ethers.providers.Web3Provider(window.ethereum) : ethers.providers.getDefaultProvider());
-let contract = new ethers.Contract(TOKEN_CONTRACT_ADDRESS, TOKEN_ABI, provider);
-
 const Hero = ({stateChanger}) => {
+  const { address } = useAccount()
+
   const [ethAmount, setEthAmount] = useState("");
   const [ethPrice, setEthPrice] = useState(null);
   const [timestamp, setTimestamp] = useState(null);
   const [data_, setData] = useState("");
   const [signedMessage, setSignedMessage] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
   const [ethBalance, setEthBalance] = useState(0);
   const [tokenBalance, setTokenBalance] = useState(0);
-  const { chain } = useNetwork()
-  const [isSepolia, setIsSepolia] = useState(chain == null ? 1 : chain.id === 11155111)
   const [items, setItems] = useState([]);
-  const signer = provider.getSigner();
+  const [refreshBalance, setRefreshBalance] = useState(false);
+  const [isMinting, setIsMinting] = useState(false);
 
-  useEffect(() => {
-    provider = new ethers.providers.Web3Provider(window.ethereum);
-    contract = new ethers.Contract(TOKEN_CONTRACT_ADDRESS, TOKEN_ABI, provider);
-
-  }, [chain]);
-
-  const fetchETHBalance = (async () => {
-    const signer = provider.getSigner();
-
-    const address = await signer.getAddress();
-    const balance = await provider.getBalance(address);
-    const balance_ = balance / 1e18
-    setEthBalance(balance_.toString());
+const fetchETHBalance_ = useBalance({
+  address: address,
+  chainId: 11155111,
 })
-
-  const fetchTokenBalance = (async () => {
-    const signer = provider.getSigner();
-
-    const contractWithSigner = contract.connect(signer);
-    const address = await signer.getAddress();
-    const balance = await contractWithSigner.balanceOf(address);
-    const balance_ = balance / 1e6
-    setTokenBalance(balance_.toString());
-})
-
-if (isSepolia) {
-  fetchETHBalance()
-  fetchTokenBalance()
-}
 
 useEffect(() => {
-  provider = ((window.ethereum != null) ? new ethers.providers.Web3Provider(window.ethereum) : ethers.providers.getDefaultProvider());
-  contract = new ethers.Contract(TOKEN_CONTRACT_ADDRESS, TOKEN_ABI, provider);
-  setIsSepolia(chain == null ? 0 : chain.id === 11155111)
-}, [chain]);
+  if (fetchETHBalance_.data != null) {
+    setEthBalance(fetchETHBalance_.data.formatted)
+  }
+}, [fetchETHBalance_]);
+
+const balance = useBalance({
+  address: address,
+  token: TOKEN_CONTRACT_ADDRESS,
+  chainId: 11155111,
+  enabled: refreshBalance,
+})
+
+useEffect(() => {
+  if (balance.data != null) {
+    setTokenBalance(balance?.data.formatted)
+  }
+}, [balance]);
 
   useEffect(() => {
     if (!ethAmount || isNaN(parseFloat(ethAmount))) return;
+    if (ethAmount <= 0) return;
     if (ethAmount) {
       fetch("https://pool.nodary.io/0xc52EeA00154B4fF1EbbF8Ba39FDe37F1AC3B9Fd4")
         .then((response) => response.json())
         .then((data) => {
           if (data.count > 0) {
-            const hashKey =
-              "0x4385954e058fbe6b6a744f32a4f89d67aad099f8fb8b23e7ea8dd366ae88151d";
+            const hashKey = "0x4385954e058fbe6b6a744f32a4f89d67aad099f8fb8b23e7ea8dd366ae88151d";
             const beaconData = data.data[hashKey];
 
             if (beaconData) {
@@ -92,9 +76,6 @@ useEffect(() => {
               setTimestamp(beaconData.timestamp);
               setSignedMessage(beaconData.signature);
               setData(beaconData.encodedValue);
-              console.log("timestamp:::", beaconData.timestamp);
-              console.log("signature:::", beaconData.signature);
-              console.log("encoded value:::", beaconData.encodedValue);
             } else {
               console.log("No data found for the specified hashKey");
             }
@@ -106,13 +87,49 @@ useEffect(() => {
     }
   }, [ethAmount]);
 
+  const calculateAmountValue = () => {
+    if (!ethAmount || isNaN(parseFloat(ethAmount))) return 0;
+    if (ethPrice && ethAmount) {
+      return ((ethPrice * ethAmount) / 1e18).toFixed(2);
+    }
+    return "0";
+  };
+
+  const { config } = usePrepareContractWrite({
+    address: TOKEN_CONTRACT_ADDRESS,
+    abi: TOKEN_ABI,
+    functionName: 'mint',
+    chainId: 11155111,
+    enabled: timestamp && data_ && signedMessage && !isNaN(parseFloat(ethAmount)) && parseFloat(ethAmount) > 0,
+    args: [timestamp, data_, signedMessage],
+    value: (!ethAmount || isNaN(parseFloat(ethAmount))) ? 0 : ethers.utils.parseEther(ethAmount),
+  })
+
+  const { data, write } = useContractWrite(config)
+
+  const { isLoading, isSuccess } = useWaitForTransaction({
+    hash: data?.hash,
+  });
+
+  const mintTokens = async () => {
+    setIsMinting(true)
+  };
+
+  useEffect(() => {
+    if (!timestamp || !data_ || !signedMessage || isNaN(parseFloat(ethAmount)) || parseFloat(ethAmount) <= 0) return
+    if (write == null || write === undefined) return
+    
+    if (isMinting) {
+      setIsMinting(false)
+      write?.()
+    }
+  }, [data_, ethAmount, isMinting, signedMessage, timestamp, write]);
+
   useEffect(() => { 
     if (isSuccess) {
       localStorage.setItem('items', JSON.stringify(items));
         setEthAmount("");
-        setIsLoading(false);
-        setIsSuccess(false);
-        fetchTokenBalance()
+        setRefreshBalance(true)
     }
     }, [isSuccess, items]);
 
@@ -122,38 +139,6 @@ useEffect(() => {
        setItems(items);
       }
     }, []);
-
-  const calculateAmountValue = () => {
-    if (ethPrice && ethAmount) {
-      return ((ethPrice * ethAmount) / 1e18).toFixed(2);
-    }
-    return "0";
-  };
-
-  const mintTokens = async () => {
-    const contractWithSigner = contract.connect(signer);
-
-    try {
-        setIsLoading(true);
-      const tx = await contractWithSigner.mint(
-        timestamp ? timestamp.toString() : "0",
-        data_,
-        signedMessage || "0x0",
-        {
-          value: ethers.utils.parseEther(ethAmount),
-        }
-      );
-
-      console.log("Transaction Hash:", tx.hash);
-      await tx.wait();
-      items.push(tx.hash)
-      setIsSuccess(true);
-      console.log("Transaction Confirmed!");
-    } catch (error) {
-      setIsLoading(false);
-      console.error("Error sending transaction:", error);
-    }
-  };
 
 
   return (

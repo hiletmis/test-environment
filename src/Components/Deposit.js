@@ -3,7 +3,7 @@ import { COLORS } from '../data/colors';
 import Faucet from './Faucet';
 import Popup from 'reactjs-popup';
 import { Grid } from 'react-loader-spinner'
-import { useNetwork } from 'wagmi';
+import { useNetwork, useBalance, useAccount, useContractRead, usePrepareContractWrite, useContractWrite, useSignTypedData, useWaitForTransaction } from 'wagmi';
 
 import { Button, Heading, VStack, Box, Text } from "@chakra-ui/react";
 import {
@@ -14,84 +14,127 @@ import {
 } from '@chakra-ui/react'
 
 import { ethers } from "ethers";
-import { PREPAYMENT_DEPOSIT_ABI, PREPAYMENT_DEPOSIT_CONTRACT_ADDRESS, TOKEN_ABI, TOKEN_CONTRACT_ADDRESS } from "../data/abi";
- 
-let provider = ((window.ethereum != null) ? new ethers.providers.Web3Provider(window.ethereum) : ethers.providers.getDefaultProvider());
-let contract = new ethers.Contract(PREPAYMENT_DEPOSIT_CONTRACT_ADDRESS, PREPAYMENT_DEPOSIT_ABI, provider);
- 
+import { PREPAYMENT_DEPOSIT_ABI, PREPAYMENT_DEPOSIT_CONTRACT_ADDRESS, TOKEN_ABI, TOKEN_CONTRACT_ADDRESS, SIGNTYPEDDATA } from "../data/abi";
+  
 const Deposit = () => {
+  const { address } = useAccount()
 
   const [tokenAmount, setTokenAmount] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
   const [tokenBalance, setTokenBalance] = useState(0); 
   const [collateral, setCollateral] = useState('');
   const [refreshBalance, setRefreshBalance] = useState(false);
-  const { chain } = useNetwork()
+  const [signErc2612PermitArgs, setSignErc2612PermitArgs] = useState({tokenAmount: 0, v: 0, r: "0x", s: "0x"});
+  const [isSigned, setIsSigned] = useState(false);
+
+  const { chain,  } = useNetwork()
 
   useEffect(() => {
-    provider = new ethers.providers.Web3Provider(window.ethereum);
-    contract = new ethers.Contract(PREPAYMENT_DEPOSIT_CONTRACT_ADDRESS, PREPAYMENT_DEPOSIT_ABI, provider);
     setRefreshBalance(true)
   }, [chain]);
 
-  const fetchTokenBalance = (async () => {
-    const signer = provider.getSigner();
-    const token = new ethers.Contract(TOKEN_CONTRACT_ADDRESS, TOKEN_ABI, provider);
+  const balance = useBalance({
+    address: address,
+    token: TOKEN_CONTRACT_ADDRESS,
+    chainId: 11155111,
+    enabled: refreshBalance,
+  })
 
-    const contractWithSigner = token.connect(signer);
-    const address = await signer.getAddress();
-    const balance = await contractWithSigner.balanceOf(address);
-    const balance_ = balance / 1e6
-    setTokenBalance(balance_.toString());
-})
+  useEffect(() => {
+    if (balance.data != null) {
+      setTokenBalance(balance?.data.formatted)
+    }
+  }, [balance]);
 
-const fetchCollateral = (async () => {
-  const signer = provider.getSigner();
+  const collateralBalance = useContractRead({
+    address: PREPAYMENT_DEPOSIT_CONTRACT_ADDRESS,
+    abi: PREPAYMENT_DEPOSIT_ABI,
+    functionName: 'userToWithdrawalLimit',
+    chainId: 11155111,
+    args: [address],
+    enabled: refreshBalance,
+  })
 
-  const contractWithSigner = contract.connect(signer);
-  const address = await signer.getAddress();
-  const balance = await contractWithSigner.userToWithdrawalLimit(address);
-  const balance_ = balance / 1e6
-  setCollateral(balance_.toString());
-})
+  const nonce = useContractRead({
+    address: TOKEN_CONTRACT_ADDRESS,
+    abi: TOKEN_ABI,
+    functionName: 'nonces',
+    chainId: 11155111,
+    args: [address],
+    enabled: refreshBalance,
+  })
 
-  const depositTokens = async () => {
-    const signer = provider.getSigner();
+  const tokenName = useContractRead({
+    address: TOKEN_CONTRACT_ADDRESS,
+    abi: TOKEN_ABI,
+    functionName: 'name',
+    chainId: 11155111,
+  })
 
-    const contractWithSigner = contract.connect(signer);
-    const deadline = ethers.constants.MaxUint256
-    const amount = ethers.utils.parseEther(tokenAmount) / (1e12)
-    
-    const address = await signer.getAddress()
-    const { v, r, s } = await signErc2612Permit(signer, contract.address, amount, deadline)
+  useEffect(() => {
+    if (collateralBalance.data) {  
+      setCollateral(parseInt(collateralBalance.data) / 1e6)
+    }
+  }, [collateralBalance]);
 
-    try {
-      setIsLoading(true);
-      const tx = await contractWithSigner.applyPermitAndDeposit(address, amount, deadline, v, r, s);
-      console.log("Transaction Hash:", tx.hash);
-      await tx.wait();
-      setIsSuccess(true);
-      console.log("Transaction Confirmed!");
-  } catch (error) {
-      setIsLoading(false);
-    console.error("Error sending transaction:", error);
+  const domain = {
+    name: tokenName.data,
+    version: '2',
+    chainId: 11155111,
+    verifyingContract: TOKEN_CONTRACT_ADDRESS,
   }
 
-  };
+  const message = {
+    owner: address,
+    spender: PREPAYMENT_DEPOSIT_CONTRACT_ADDRESS,
+    nonce: nonce.data,
+    value: tokenAmount !== "" ? parseFloat(tokenAmount) * 1e6 : 0,
+    deadline: String(ethers.constants.MaxUint256),
+  }
+
+  const { isLoading: isLoadingTypedData, signTypedData } = useSignTypedData({
+      domain,
+      types: SIGNTYPEDDATA,
+      primaryType: 'Permit',
+      message,
+      onSuccess: (data) => {
+        const { v, r, s } = ethers.utils.splitSignature(data);
+        setSignErc2612PermitArgs({tokenAmount: parseFloat(tokenAmount) * 1e6, deadline: String(ethers.constants.MaxUint256), v, r, s})
+        setIsSigned(true)
+      }
+      })
+
+  const { config } = usePrepareContractWrite({
+    address: PREPAYMENT_DEPOSIT_CONTRACT_ADDRESS,
+    abi: PREPAYMENT_DEPOSIT_ABI,
+    functionName: 'applyPermitAndDeposit',
+    chainId: 11155111,
+    enabled: isSigned,
+    args: [address, signErc2612PermitArgs.tokenAmount, String(ethers.constants.MaxUint256), signErc2612PermitArgs.v, signErc2612PermitArgs.r, signErc2612PermitArgs.s],
+  })
+
+  const { data, write } = useContractWrite(config)
+
+  const { isLoading, isSuccess } = useWaitForTransaction({
+    hash: data?.hash,
+  });
+
+  useEffect(() => {
+    if (write == null || write === undefined) return
+    if (isSigned) {
+      setIsSigned(false)
+      write?.()
+    }
+  }, [isSigned, write]);
  
   useEffect(() => {
     if (isSuccess) {
-      setIsLoading(false);
-      setIsSuccess(false);
+      setRefreshBalance(true)
       setTokenAmount("");
     }
   }, [isSuccess]);
   
   useEffect(() => {
     if (refreshBalance) {
-      fetchTokenBalance()
-      fetchCollateral()
       setRefreshBalance(false)
     }
   }, [refreshBalance]);
@@ -115,7 +158,9 @@ const fetchCollateral = (async () => {
     <Box width={"100%"} height="120px" bgColor={COLORS.main} borderRadius={"10"}>
       <VStack spacing={3} direction="row" align="left" m="1rem">
       <Flex>
-      <NumberInput  value={tokenAmount} step={1} min={0} size={"lg"} onChange={(valueString) => setTokenAmount(valueString)}>
+      <NumberInput  value={tokenAmount} step={1} min={0} size={"lg"} onChange={(valueString) => {
+        setTokenAmount(valueString)
+        }}>
               <NumberInputField borderWidth={"0px"} focusBorderColor={"red.200"} placeholder="0.0" fontSize={"4xl"} inputMode="numeric"/><NumberInputStepper></NumberInputStepper>
             </NumberInput>
       <Spacer />
@@ -173,69 +218,17 @@ const fetchCollateral = (async () => {
         color="white"
         size="md"
         minWidth={"200px"}
-        isDisabled={isLoading || !tokenAmount || isNaN(parseFloat(tokenAmount)) || parseFloat(tokenBalance) < parseFloat(tokenAmount) || parseFloat(tokenAmount) <= 0}
-        onClick={depositTokens}
+        isDisabled={ isLoading || isLoadingTypedData || !tokenAmount || isNaN(parseFloat(tokenAmount)) || parseFloat(tokenBalance) < parseFloat(tokenAmount) || parseFloat(tokenAmount) <= 0}
+        onClick={() => {
+          signTypedData()
+        }}
       >
-        { isLoading ? 'Depositing...' : 'Deposit'}
+        { isLoadingTypedData ? "Signing..." : isLoading ? 'Depositing...' : 'Deposit'}
       </Button>
       </Stack>
     </VStack>
   );
 };
-
-
-async function signErc2612Permit(
-  signer,
-  spenderAddress,
-  amount,
-  deadline
-) {
-
-  const token = new ethers.Contract(TOKEN_CONTRACT_ADDRESS, TOKEN_ABI, signer);
-
-  const signerAddress = await signer.getAddress();
-  return ethers.utils.splitSignature(
-    await signer._signTypedData(
-      {
-        name: await token.name(),
-        version: '2',
-        chainId: (await token.provider.getNetwork()).chainId,
-        verifyingContract: token.address,
-      },
-      {
-        Permit: [
-          {
-            name: 'owner',
-            type: 'address',
-          },
-          {
-            name: 'spender',
-            type: 'address',
-          },
-          {
-            name: 'value',
-            type: 'uint256',
-          },
-          {
-            name: 'nonce',
-            type: 'uint256',
-          },
-          {
-            name: 'deadline',
-            type: 'uint256',
-          },
-        ],
-      },
-      {
-        owner: signerAddress,
-        spender: spenderAddress,
-        value: amount,
-        nonce: await token.nonces(signerAddress),
-        deadline,
-      }
-    )
-  );
-}
 
 
 export default Deposit;

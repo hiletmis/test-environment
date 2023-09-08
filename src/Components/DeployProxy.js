@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Heading, VStack, Button, Text, Image, Flex, Spacer, Box, Stack } from '@chakra-ui/react';
 import { CheckIcon, CloseIcon } from '@chakra-ui/icons'
 import { ethers } from 'ethers';
-import { useContractWrite, useWaitForTransaction, useProvider, useAccount } from 'wagmi';
+import { useContractWrite, useWaitForTransaction, useAccount, useNetwork, usePublicClient } from 'wagmi';
 import { ABI, CONTRACT_ADDRESS } from '../data/abi';
 import DataFeedList from './DataFeedList';
 import { Grid } from 'react-loader-spinner'
@@ -11,8 +11,9 @@ import { computeDataFeedProxyWithOevAddress } from '@api3/contracts';
 import { COLORS } from '../data/colors';
 
 const Commit = () => {
-  const provider = useProvider();
   const { address, isConnected } = useAccount()
+  const { chain } = useNetwork()
+  const publicClient = usePublicClient();
 
   const [dataFeedId, setDataFeedId] = useState('');
   const [beneficiaryAddress, setBeneficiaryAddress] = useState(isConnected ? address : '');
@@ -22,6 +23,7 @@ const Commit = () => {
   const [contractRegistered, setContractRegistered] = useState(false);
   const [contractRegisteredAddress, setContractRegisteredAddress] = useState(false);
   const [dataFeed, setDataFeed] = useState(null);
+  const [chainId, setChainId] = useState(chain != null ? chain.id : 0);
 
   const { data, write } = useContractWrite({
     mode: 'recklesslyUnprepared',
@@ -36,7 +38,6 @@ const Commit = () => {
     enabled: !contractExists && !contractDeployed && !contractRegistered,
     onError: (error) => {
       setContractDeployed(false);
-      console.log('Transaction Error');
     }
   });
 
@@ -54,29 +55,32 @@ const Commit = () => {
   }, [address, isConnected]);
 
   useEffect(() => {
-    console.log('isLoading:', isLoading);
-    console.log('isSuccess:', isSuccess);
+    setChainId(chain != null ? chain.id : 0);
+  }, [chain]);
 
+  useEffect(() => {
     if (isSuccess) {
       setContractDeployed(true);
     }
 
-  }, [isLoading, isSuccess]);
+  }, [isSuccess]);
 
   useEffect(() => {
     if (proxyAddress === '') {
       setContractExists(false);
-      console.log('No proxy address');
       return
     }
-    
-    provider.getCode(proxyAddress, 'latest').then((code) => {
-      console.log(code, '- Code')
-      if (code !== '0x') {
+
+    publicClient.getBytecode({
+      address: proxyAddress,
+      blockTag: 'latest',
+    }).then((code) => {
+      if (code !== '0x' && code !== '0x0' && code !== undefined) {
         setContractExists(true);
       }
     })
-  },[provider, proxyAddress])
+  },[publicClient, proxyAddress])
+
 
   useEffect(() => {
     setContractExists(false);
@@ -85,21 +89,21 @@ const Commit = () => {
     setContractRegisteredAddress(false);
 
     if (validateDataFeedId(dataFeedId) && validateAddress(beneficiaryAddress)) {
-      setProxyAddress(computeDataFeedProxyWithOevAddress(provider.network.chainId, dataFeedId, beneficiaryAddress, '0x'));
+      setProxyAddress(computeDataFeedProxyWithOevAddress(chainId, dataFeedId, beneficiaryAddress, '0x'));
     }
     
-  }, [beneficiaryAddress, dataFeedId, provider.network.chainId])
+  }, [beneficiaryAddress, dataFeedId, chainId])
 
   useEffect(() => {
+    setProxyAddress('');
     setDataFeed(dataFeed);
     setDataFeedId(dataFeed?.beaconId);
   }, [dataFeed])
 
   useEffect(() => {
     if (proxyAddress !== '' && validateDataFeedId(dataFeedId) && validateAddress(beneficiaryAddress)) {
-      console.log('Checking if contract is registered at:', proxyAddress);
 
-      fetch('http://localhost:3040/proxy/check', {
+      fetch(process.env.REACT_APP_API + '/proxy/check', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -108,24 +112,21 @@ const Commit = () => {
           proxyAddress: proxyAddress,
           dataFeedId: dataFeedId,
           beneficiaryAddress: beneficiaryAddress,
-          chainId: provider.network.chainId,
+          chainId: chainId,
         }),
       }).then((response) => response.json())
         .then((data) => {
-          console.log('Success:', data);
           setContractRegistered(data.proxyRegisted);
         })
         .catch((error) => {
-          console.error('Error:', error);
         });
     }
-  }, [beneficiaryAddress, dataFeedId, provider.network.chainId, proxyAddress]);
+  }, [beneficiaryAddress, dataFeedId, proxyAddress, chainId]);
 
   useEffect(() => {
     if (contractRegisteredAddress && proxyAddress !== '' && validateDataFeedId(dataFeedId) && validateAddress(beneficiaryAddress)) {
-      console.log('Registering proxy at:', proxyAddress);
 
-      fetch('http://localhost:3040/proxy/register', {
+      fetch(process.env.REACT_APP_API + '/proxy/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -134,20 +135,16 @@ const Commit = () => {
           proxyAddress: proxyAddress,
           dataFeedId: dataFeedId,
           beneficiaryAddress: beneficiaryAddress,
-          chainId: provider.network.chainId,
+          chainId: chainId,
         }),
       }).then((response) => response.json())
 
         .then((data) => {
-          console.log('Success:', data);
           setContractRegisteredAddress(false);
           setContractRegistered(data.proxyRegisted);
         })
-        .catch((error) => {
-          console.error('Error:', error);
-        }); 
     }
-  }, [beneficiaryAddress, contractRegistered, contractRegisteredAddress, dataFeedId, provider.network.chainId, proxyAddress]);
+  }, [beneficiaryAddress, contractRegistered, contractRegisteredAddress, dataFeedId, proxyAddress, chainId]);
 
   return (
 <VStack bgColor={COLORS.app} spacing={4} p={8} borderRadius="lg" boxShadow="lg" width="600px" alignItems={"left"} >
@@ -260,10 +257,8 @@ const Commit = () => {
         }
         onClick={() => {
           if (contractDeployed || contractExists) {
-            console.log('Registering');
             setContractRegisteredAddress(true);
           } else {
-            console.log('Deploying'); 
             write?.();
           }
 
