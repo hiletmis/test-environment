@@ -1,23 +1,16 @@
-import React, {useEffect} from "react";
+import React from "react";
 import { VStack, Heading, Flex, Spacer, Text, Box, Image, Stack, Button} from '@chakra-ui/react';
 import { COLORS } from '../data/colors';
-import { useNetwork } from "wagmi";
+import { useNetwork, useSwitchNetwork } from "wagmi";
 
 const Hero = () => {
 
     const { chain } = useNetwork()
+    const { switchNetwork, isLoading } = useSwitchNetwork()
     
-    useEffect(() => {
-    }, [chain]);
-
-    function switchNetwork() {
-        if (window.ethereum === null) {
-            return;
-        }
-        window.ethereum.request({
-            method: 'wallet_switchEthereumChain',
-            params: [{ chainId: '0xAA36A7' }],
-        });
+    const switchChain = () => {
+      if (isLoading) return
+      switchNetwork?.(11155111)
     }
 
   return (
@@ -52,14 +45,13 @@ const Hero = () => {
         color="white"
         size="md"
         minWidth={"200px"}
-        onClick={switchNetwork}
+        isDisabled={isLoading || chain?.id === 11155111}
+        onClick={switchChain}
       >
-        Switch Network
+        {isLoading ? "Switching" : "Switch Network"}
       </Button>
       </Stack>
     </VStack>
-
-
   );
 };
 
