@@ -81,7 +81,6 @@ const Commit = () => {
     })
   },[publicClient, proxyAddress])
 
-
   useEffect(() => {
     setContractExists(false);
     setContractDeployed(false);

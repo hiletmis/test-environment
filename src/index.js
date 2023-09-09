@@ -4,7 +4,8 @@ import ReactDOM from 'react-dom';
 import './index.css';
 import App from './App';
 import '@rainbow-me/rainbowkit/styles.css';
-import { getDefaultWallets, RainbowKitProvider, lightTheme } from '@rainbow-me/rainbowkit';
+import { connectorsForWallets, RainbowKitProvider, lightTheme } from '@rainbow-me/rainbowkit';
+import { walletConnectWallet, metaMaskWallet, injectedWallet } from '@rainbow-me/rainbowkit/wallets';
 import { configureChains, createConfig, WagmiConfig } from 'wagmi';
 import { publicProvider } from 'wagmi/providers/public';
 import { ChakraProvider } from '@chakra-ui/react';
@@ -29,11 +30,18 @@ const { chains, publicClient, webSocketPublicClient } = configureChains(
   [publicProvider()]
 );
 
-const { connectors } = getDefaultWallets({
-  appName: 'RainbowKit App',
-  projectId: String(process.env.REACT_APP_WALLET_CONNECT_PROJECT_ID),
-  chains,
-});
+const projectId = String(process.env.REACT_APP_WALLET_CONNECT_PROJECT_ID)
+
+const connectors = connectorsForWallets([
+  {
+    groupName: 'Other',
+    wallets: [
+      injectedWallet({ projectId, chains }),
+      walletConnectWallet({ projectId, chains }),
+      metaMaskWallet({ projectId, chains }),
+    ],
+  },
+]);
 
 const wagmiConfig = createConfig({
   autoConnect: true,
@@ -41,7 +49,6 @@ const wagmiConfig = createConfig({
   publicClient,
   webSocketPublicClient,
 });
-
 
 ReactDOM.render(
   <React.StrictMode>
