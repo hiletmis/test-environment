@@ -102,7 +102,7 @@ const Commit = () => {
   useEffect(() => {
     if (proxyAddress !== '' && validateDataFeedId(dataFeedId) && validateAddress(beneficiaryAddress)) {
 
-      fetch(process.env.REACT_APP_API + '/proxy/check', {
+      fetch('https://proxy.api3dev.com/proxy/check', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -125,7 +125,7 @@ const Commit = () => {
   useEffect(() => {
     if (contractRegisteredAddress && proxyAddress !== '' && validateDataFeedId(dataFeedId) && validateAddress(beneficiaryAddress)) {
 
-      fetch(process.env.REACT_APP_API + '/proxy/register', {
+      fetch('https://proxy.api3dev.com/proxy/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

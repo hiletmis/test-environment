@@ -350,45 +350,6 @@ export const ABI = [
 	}
 ];
 
-export const CONTRACT_ADDRESS_TDF = '0x6d073A6F0b1B41A83aAF5D439EE0F18040879156';
-export const ABI_TDF = [
-  { inputs: [], stateMutability: 'nonpayable', type: 'constructor' },
-  { inputs: [], name: 'AmountZero', type: 'error' },
-  {
-    anonymous: false,
-    inputs: [
-      { indexed: true, internalType: 'address', name: 'tokenDistributor', type: 'address' },
-      { indexed: false, internalType: 'address', name: 'token', type: 'address' },
-      { indexed: false, internalType: 'uint256', name: 'amount', type: 'uint256' },
-      { indexed: true, internalType: 'bytes32', name: 'root', type: 'bytes32' },
-      { indexed: false, internalType: 'address', name: 'expirationRecipient', type: 'address' },
-      { indexed: true, internalType: 'uint256', name: 'expirationTimestamp', type: 'uint256' },
-    ],
-    name: 'DeployedTokenDistributor',
-    type: 'event',
-  },
-  {
-    inputs: [
-      { internalType: 'address', name: 'token', type: 'address' },
-      { internalType: 'uint256', name: 'amount', type: 'uint256' },
-      { internalType: 'bytes32', name: 'root', type: 'bytes32' },
-      { internalType: 'address', name: 'expirationRecipient', type: 'address' },
-      { internalType: 'uint256', name: 'expirationTimestamp', type: 'uint256' },
-    ],
-    name: 'deployTokenDistributor',
-    outputs: [{ internalType: 'address', name: 'tokenDistributor', type: 'address' }],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [],
-    name: 'tokenDistributorImplementation',
-    outputs: [{ internalType: 'address', name: '', type: 'address' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-];
-
 export const TOKEN_NAME = "SepoliaUsdc";
 export const TOKEN_CONTRACT_ADDRESS = "0x03A35484388562E2b4e3d5ce105dc4Db7F57ebC4";
 export const TOKEN_ABI = [
