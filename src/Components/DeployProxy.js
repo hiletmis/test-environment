@@ -27,7 +27,7 @@ const Commit = () => {
 
   const { data, write } = useContractWrite({
     mode: 'recklesslyUnprepared',
-    address: CONTRACT_ADDRESS,
+    address: CONTRACT_ADDRESS(chainId),
     abi: ABI,
     functionName: 'deployDataFeedProxyWithOev',
     args: [

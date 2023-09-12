@@ -1,4 +1,8 @@
-export const CONTRACT_ADDRESS = '0xd9cB76bcAE7219Fb3cB1936401804D7c9F921bCD';
+export const CONTRACT_ADDRESS = (chainId) => {
+	console.log('chainId', chainId);	 
+	return chainId === 280 ? '0xb9ed9a0Ecfcc544D8eB82BeeBE79B03e13012d7c' : '0xd9cB76bcAE7219Fb3cB1936401804D7c9F921bCD';
+};					
+
 export const ABI = [
 	{
 		inputs: [
