@@ -1832,10 +1832,10 @@ const sepolia = /*#__PURE__*/ ({
         webSocket: ['wss://sepolia.infura.io/ws/v3'],
       },
       default: {
-        http: ['https://rpc.notadegen.com/eth/sepolia'],
+        http: ['https://rpc.eu-central-1.gateway.fm/v4/ethereum/non-archival/sepolia'],
       },
       public: {
-        http: ['https://rpc.notadegen.com/eth/sepolia'],
+        http: ['https://rpc.eu-central-1.gateway.fm/v4/ethereum/non-archival/sepolia'],
       },
     },
     blockExplorers: {
