@@ -7,6 +7,9 @@ import { ABI, CONTRACT_ADDRESS } from '../data/abi';
 import DataFeedList from './DataFeedList';
 import { Grid } from 'react-loader-spinner'
 import { computeDataFeedProxyWithOevAddress } from '@api3/contracts'; 
+import { TriangleDownIcon, TriangleUpIcon } from '@chakra-ui/icons';
+import CopyInfoRow from './CopyInfoRow';
+
 
 import { COLORS } from '../data/colors';
 
@@ -24,6 +27,7 @@ const Commit = () => {
   const [contractRegisteredAddress, setContractRegisteredAddress] = useState(false);
   const [dataFeed, setDataFeed] = useState(null);
   const [chainId, setChainId] = useState(chain != null ? chain.id : 0);
+  const [isDataFeedListOpen, setIsDataFeedListOpen] = useState(false);
 
   const { data, write } = useContractWrite({
     mode: 'recklesslyUnprepared',
@@ -44,6 +48,20 @@ const Commit = () => {
   const { isLoading, isSuccess } = useWaitForTransaction({
     hash: data?.hash,
   });
+
+  const removeDataFeed = () => {
+    setContractRegistered(false);
+    setContractRegisteredAddress(true);
+    setDataFeed(null);
+    setDataFeedId('');
+    setProxyAddress('');
+  }
+
+  useEffect(() => {
+    setDataFeed(dataFeed);
+    setDataFeedId(dataFeed?.beaconId);
+    setIsDataFeedListOpen(false);
+  }, [dataFeed])
 
   useEffect(() => {
     if (isConnected) {
@@ -160,7 +178,7 @@ const Commit = () => {
   />
       </Flex>
 
-      <Box width={"100%"} height={contractExists || contractDeployed ? "410px" : "250px"} bgColor={COLORS.main} borderRadius={"10"}>
+      <Box width={"100%"} bgColor={COLORS.main} borderRadius={"10"}>
 
       <VStack spacing={3} direction="row" align="left" m="1rem">
         <Text fontWeight={"bold"} fontSize={"md"}>Beneficiary Address</Text>
@@ -180,63 +198,51 @@ const Commit = () => {
         </Flex>
         </Box>
         <Text fontWeight={"bold"} fontSize={"md"}>Data Feed</Text>
-        <Box p= "3" width={"100%"} height={"70px"} borderRadius={"10"} bgColor={COLORS.app}  alignItems={"center"}>
-        <Flex className='box'>
+        <Box p= "3" width={"100%"}  borderRadius={"10"} bgColor={COLORS.app}  alignItems={"center"}>
+        <Flex alignItems={isDataFeedListOpen ? "top" : "center"} className='box'>
 
-        <Stack direction="column" spacing={"2"} width={"75%"}>
-              <Stack direction="row" spacing={"2"} >
-                <Stack visibility={!dataFeed ? "hidden" : "visible"} direction="row" spacing={"-2"}>
-                  <Image zIndex={2} src={dataFeed === null ? "" : `https://market.api3.org/images/asset-logos/${dataFeed.image1 == null ? dataFeed.p1 : dataFeed.image1}.webp`} width={"24px"} height={"24px"} />
-                  <Image zIndex={1} src={dataFeed === null ? "" : `https://market.api3.org/images/asset-logos/${dataFeed.image2 == null ? dataFeed.p2 : dataFeed.image2}.webp`} width={"24px"} height={"24px"} />
-                </Stack>
-                <Text fontSize="md" fontWeight="bold">{dataFeed === null ? "" : dataFeed.p1 + '/' + dataFeed.p2}</Text>
-            
-                <Box visibility={"hidden"} paddingLeft={2} paddingRight={2} borderRadius={"10"} bgColor={COLORS.info} height={5} >
-                <Text fontSize="xs">Deployed</Text>
-                </Box>
-                <Box visibility={"hidden"} paddingLeft={2} paddingRight={2} borderRadius={"10"} bgColor={COLORS.info} height={5} >
-                <Text fontSize="xs">Registered</Text>
-                </Box>
+        <Stack direction="column" spacing={"2"} width={"80%"}>
+          { isDataFeedListOpen ? <DataFeedList stateChanger={setDataFeed}/> :
+            <Stack direction="row" spacing={"2"} >
+              <Stack visibility={!dataFeed ? "hidden" : "visible"} direction="row" spacing={"1"}>
+                <Image src={dataFeed === null ? "" : `/coins/${dataFeed.p1}.webp`} fallbackSrc={`/coins/NA.webp`} width={"24px"} height={"24px"} />
+                <Image src={dataFeed === null ? "" : `/coins/${dataFeed.p2}.webp`} fallbackSrc={`/coins/NA.webp`} width={"24px"} height={"24px"} />
               </Stack>
-              <Text width={"100%"} noOfLines={1} fontSize="xs">{dataFeed === null ? "" : dataFeed.beaconId}</Text>
+            <Text fontSize="md" fontWeight="bold">{dataFeed === null ? "" : dataFeed.p1 + '/' + dataFeed.p2}</Text>
             </Stack>
-
-          <Spacer />
-          <DataFeedList stateChanger={setDataFeed}/>
+          }
+          <Text width={"100%"} noOfLines={1} fontSize="xs">{dataFeed === null ? "" : dataFeed.beaconId}</Text>
+        </Stack>
+        <Spacer />
+          {contractRegistered 
+          ? <Button onClick={ removeDataFeed }>X</Button> 
+          : isDataFeedListOpen ? <TriangleUpIcon width={"24px"} height={"24px"} onClick={() => {setIsDataFeedListOpen(false)}}></TriangleUpIcon> : <TriangleDownIcon width={"24px"} height={"24px"} onClick={() => {setIsDataFeedListOpen(true)}}/>
+          }
         </Flex>
-          </Box>
+      </Box>
 
         <VStack spacing={3} alignItems={"left"} visibility={(contractDeployed || contractExists) ? "visible" : "hidden"} >
 
+        { contractDeployed || contractExists ?
 
-        <Text fontWeight={"bold"} fontSize={"md"}>Proxy Address</Text>
-        <Box p= "2" width={"100%"} bgColor={COLORS.app} borderRadius={"10"} alignItems={"center"}>
+            <VStack spacing={3} alignItems={"left"} >
+            <CopyInfoRow header={"Proxy Address"} text={proxyAddress}></CopyInfoRow>
 
-        <Flex className='box'>
-          <Text fontSize={"md"}>{proxyAddress}</Text>
-          <Spacer />
-          <Button 
-            isDisabled={!isConnected || !proxyAddress}
-            visibility={(contractDeployed || contractExists) ? "visible" : "hidden"}
-            onClick={() => {
-              navigator.clipboard.writeText(proxyAddress)
-            }}
-          >Copy</Button>
-        </Flex>
-        </Box>
+            <Flex>
+            <Text fontWeight={"bold"} fontSize={"sm"}>Contract Exists</Text>
+              <Spacer />
+              {(contractExists || contractDeployed) ? <CheckIcon/> : <CloseIcon />} 
+            </Flex>
 
-        <Flex>
-        <Text fontWeight={"bold"} fontSize={"sm"}>Contract Exists</Text>
-          <Spacer />
-          {(contractExists || contractDeployed) ? <CheckIcon/> : <CloseIcon />} 
-        </Flex>
+            <Flex>
+            <Text fontWeight={"bold"} fontSize={"sm"}>Contract Registered</Text>
+              <Spacer />
+              {(contractRegistered) ? <CheckIcon/> : <CloseIcon />} 
 
-        <Flex>
-        <Text fontWeight={"bold"} fontSize={"sm"}>Contract Registered</Text>
-          <Spacer />
-          {(contractRegistered) ? <CheckIcon/> : <CloseIcon />} 
-
-        </Flex>
+            </Flex>
+            </VStack>
+            : null
+            }
         </VStack>
         </VStack>
       </Box>
